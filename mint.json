@@ -34,7 +34,7 @@
     },
     {
       "name": "API Reference",
-      "url": "/api-reference",
+      "url": "notification-api-reference",
       "openapi": "/specs/notification_api_docs.json"
     }
   ],
