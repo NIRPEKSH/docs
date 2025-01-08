@@ -8,7 +8,7 @@
   },
   "servers": [
     {
-      "url": "/"
+      "url": "https://notification.platform.dev.ai71services.ai/"
     }
   ],
   "paths": {
