@@ -1,42 +1,151 @@
 ---
-title: Introduction
-icon: city
----
----
-Introduction
----
-The notification service has been designed to empower teams with a robust, scalable, and extensible solution for managing notifications across multiple channels.
-
----
-Key Highlights:
+title: High level design & Workflow
+icon: rocket
 ---
 
-<CardGroup cols={1}>
-            <Card title='Multi-Channel Notification Support' icon='bell'>
-                <li>Send notifications seamlessly across **Email**, **SMS**, and **Push channels**. </li>
-                <li>Leverages trusted third-party integrations such as **SendGrid**, **MailChimp**, **Twilio**, and **Firebase** to ensure reliable delivery. </li>
-            </Card>
-            <Card title='Scalable and Fault-Tolerant Architecture' icon='sitemap'>
-                <li>Built using **Clean Architecture principles**, ensuring maintainability and flexibility. </li>
-                <li>Employs **RabbitMQ** for message queuing, complete with **priority handling**, **dead-letter queues**, and **retries** for reliable message delivery. </li>
-                <li>Highly resilient infrastructure, featuring **autoscaling services** and **PostgreSQL primary-replica failover support**. </li>
-                <li>Deployed on **Kubernetes** for high availability, fault tolerance, and scalability. </li>
-            </Card>
-            <Card title='Comprehensive Onboarding Services and Multi-Tenancy Support' icon='person-snowboarding'>
-                <li>APIs to onboard **products** and **organizations** securely, with automatic **API key generation** and management. </li>
-                <li>**Multi-tenancy support** ensures seamless handling of multiple products and organizations with proper isolation and secure access. </li>
-                <li>Designed with **transactional integrity** to ensure robust database operations for seamless onboarding experiences across different tenants. </li>
-            </Card>
-            <Card title='Enhanced Monitoring and Observability, and Audit Trails' icon='watchman-monitoring'>
-                <li>**Health check endpoints** for all core components, enabling faster diagnostics and system recovery. </li>
-                <li>**Audit trail support** captures and stores key events, ensuring traceability for notifications, with detailed records of actions taken across the system. </li>
-            </Card>
-            <Card title='Configurable and Extensible Design' icon='sparkles'>
-                <li>Extensible structure to onboard additional notification channels or third-party providers with minimal changes. </li>
-                <li>Designed as a **SaaS platform**, supporting integrations with third-party services and APIs. </li>
-            </Card>
-            <Card title='Business Value' icon='business-time'>
-                <li>Streamlined notification processes reduce operational overhead while improving communication reliability. </li>
-                <li>Scalable design aligns with our organization’s growth, ensuring we meet future demands without compromising performance. </li>
-            </Card>
-</CardGroup>
+The Notification Service is a scalable, multi-tenant platform that streamlines how applications send and manage notifications across various channels (Email, SMS, Push, etc.). By providing a unified interface and a robust set of APIs, the service handles all essential notification processes such as template management, delivery scheduling, and logging under one roof.
+
+**Key components include:**
+
+<ul>
+    <li><b>Multi-Tenancy:</b> Supports both B2C scenarios (single-tenant) and B2B scenarios (multiple Organizations under a single Product).</li>
+    <li><b>Secure & Reliable Delivery:</b> Integrates authentication and retry mechanisms to ensure messages reach their intended recipients.</li>
+    <li><b>Audit Trails:</b> Maintains detailed records of notifications and events for compliance, troubleshooting, and analytics.</li>
+    <li><b>Scalability & Extensibility:</b> Built on a modular architecture, allowing you to add new channels or adapt existing workflows with minimal overhead.</li>
+</ul>
+
+High level design
+---
+<Frame caption="Platform - Notification Service System Architecture">
+    <img src="/images/NotificationArchitecture.png" />
+</Frame>
+
+---
+
+
+This document provides two key workflows for the Notification Service:
+
+- **Notification Onboarding Workflow**  
+- **Notification Processing Workflow**
+
+Each workflow is explained in detail and references a diagram illustrating the sequence of actions and system interactions.
+
+### 1. Notification Onboarding Workflow
+
+**Purpose**  
+The onboarding workflow enables a client (consumer) to register or onboard new Products and optionally Organizations under these Products. This process is essential for generating the unique API credentials (keys and IDs) required for all further Notification Service interactions.
+
+**Key Steps**  
+
+<Steps>
+  <Step title="Create Product">
+    The client submits a request to add a new Product.
+  </Step>
+  <Step title="Persist Product Data">
+    The Notification Service stores the Product details and returns a unique Product API Key and Product ID.
+  </Step>
+  <Step title="Check for Organizations">
+    If the Product requires Organizations (typical in B2B scenarios), the client can create one or more Organizations under that Product.
+  </Step>
+  <Step title="Organization Onboarding">
+    The service then stores each Organization’s details, linking them to the Product, and generates Organization credentials (Org API Key & Org ID).
+  </Step>
+  <Step title="Ready to Use">
+    With credentials generated, the client can start using the notification endpoints.
+  </Step>
+</Steps>
+
+**Diagram**  
+
+```mermaid
+---
+config:
+  layout: fixed
+---
+flowchart TB
+    A["Client / Consumer"] --> B["Create Product Request"]
+    B --> C["Notification Service - Onboarding Component"]
+    C --> D["Persist New Product Details in DB"]
+    D --> E["Generate Unique Product API Key & Product ID"]
+    E --> F["Provide Product API Key & Product ID to Client"]
+    F --> G{"Does Product need Organizations?"}
+    G -- Yes --> H["Create Organization Request"]
+    H --> I["Notification Service - Onboarding Component"]
+    I --> J["Persist New Org in DB and link with respective product"]
+    J --> K["Generate Unique Org API Key & Org ID"]
+    K --> L["Provide Org API Key & Org ID to Client"]
+    G -- No --> M["Ready to Use Notification APIs"]
+    L --> M
+    ```
+
+---
+
+### 2. Notification Processing Workflow
+
+**Purpose**  
+Once the client has valid Product and/or Organization API keys, they can trigger notifications to be sent through various channels (Email, SMS, Push, etc.). This workflow shows how the system validates credentials, processes notifications (including queueing), and handles success/failure outcomes.
+
+**Key Steps**  
+
+<Steps>
+  <Step title="Trigger API">
+    The client calls the Notification Service’s trigger endpoint, supplying valid API keys and the notification payload.
+  </Step>
+  <Step title="Validation">
+    The service checks the Product/Org API keys for authorization and also validates the request body.
+  </Step>
+  <Step title="Audit Logging">
+    Key events (triggering, processing, delivery) are recorded for traceability.
+  </Step>
+  <Step title="Queueing">
+    The message is placed into a queue with the appropriate priority, returning a Request ID for client tracking.
+  </Step>
+  <Step title="Delivery Attempt">
+    The service (or a worker) attempts delivery. Success or failure is noted in the audit logs.
+  </Step>
+  <Step title="Retry & Error Handling">
+    On failure, the system retries according to a predefined policy before ultimately logging the final outcome.
+  </Step>
+</Steps>
+
+**Diagram**  
+
+```mermaid
+---
+config:
+  layout: fixed
+---
+flowchart TB
+    A[Client 
+     with valid API Keys] 
+        --> B[Trigger Notification API]
+
+    B --> C[Notification Service]
+    C --> D[Validate Product/Org Keys & Authentication]
+    D --> E{Valid?}
+
+    E -- No --> F[Return: 401 Unauthorized]
+    E -- Yes --> G[Start Notification Processing and log event in Audit Trails]
+
+    G --> H[Build Notification Payload for respective channel Email, SMS, Push, etc.]
+    H --> I[Push event into Queue with respective priority and log in Audit Trails]
+    I --> N[Return: Request ID to Client for further tracking]
+    I --> J[Delivery Attempt on consuming the event and log status in Audit Trails]
+
+    J --> K{Success or Failure?}
+    K -- Success --> L[Log Success in Audit Trails]
+    K -- Failure --> M[Retry & Error Handling]
+    M --> L[Log Success/Failure in Audit Trails]
+
+    ```
+
+---
+
+### Final Notes
+
+- **Security & Authorization**: Always ensure valid API keys are included with each request.  
+- **Multi-Tenancy**: B2B products may use multiple Organizations, while B2C products typically do not require Organizations.  
+- **Audit Trails**: Every major event (creation, updates, notification triggers, retries) is recorded to facilitate debugging and compliance.  
+- **Scalability**: Leveraging a queue-based architecture ensures high throughput and fault tolerance for large-scale notification deliveries.
+
+By following these two workflows, you can seamlessly onboard your Products and Organizations and reliably send notifications to your users. If you have any questions or need further assistance, please let us know.
