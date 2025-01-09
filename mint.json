@@ -43,7 +43,9 @@
       "group": "",
       "pages": [
         "introduction",
-        "current-features"
+        "workflow",
+        "current-features",
+        "roadmap"
       ]
     }
   ]
