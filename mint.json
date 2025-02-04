@@ -25,7 +25,7 @@
   "topbarCtaButton": {
     "name": "API Playground",
     "arrow": true,
-    "url": "https://notification.platform.dev.ai71services.ai/playground"
+    "url": "https://notification.platform.prod.ai71services.ai/playground"
   },
   "tabs": [
     {
